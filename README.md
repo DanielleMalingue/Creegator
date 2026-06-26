@@ -1,2 +1,2 @@
 # Creegator
-Upscaling short form content production 
+Helping UGC for real startups
