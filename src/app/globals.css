@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #0c1f12;
+
+  /* Creegator brand — regular green + lime green */
+  --brand: #16a34a;        /* regular green (primary)  */
+  --brand-dark: #15803d;   /* hover / emphasis         */
+  --brand-foreground: #f0fdf4;
+  --lime: #84cc16;         /* lime green (accent)      */
+  --lime-bright: #a3e635;  /* lighter lime highlight   */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-lime: var(--lime);
+  --color-lime-bright: var(--lime-bright);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #07120b;
+    --foreground: #e7f6ea;
+    --brand-foreground: #07120b;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
