@@ -147,6 +147,70 @@ export async function listCampaigns(): Promise<CampaignSummary[]> {
   );
 }
 
+// --- Outreach (§7.5) --------------------------------------------------------
+
+export type OutreachTarget = {
+  enrollmentId: string;
+  stage: string;
+  creator: {
+    id: string;
+    display_name: string | null;
+    handle: string | null;
+    niche: string | null;
+    bio: string | null;
+    fit_notes: string | null;
+    fit_score: number | null;
+    follower_count: number | null;
+    email: string | null;
+    primary_platform: string;
+  };
+  campaign: { id: string; name: string; brand: string | null } | null;
+  draft: { id: string; subject: string | null; body: string | null; ai_opener: string | null } | null;
+};
+
+export async function listOutreachTargets(): Promise<OutreachTarget[]> {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from('campaign_creators')
+    .select(
+      'id, stage, ' +
+        'creators(id, display_name, handle, niche, bio, fit_notes, fit_score, follower_count, email, primary_platform), ' +
+        'campaigns(id, name, brand), ' +
+        'messages(id, subject, body, ai_opener, direction, status)',
+    )
+    .order('priority', { ascending: false });
+
+  type Row = {
+    id: string;
+    stage: string;
+    creators: OutreachTarget['creator'] | null;
+    campaigns: OutreachTarget['campaign'];
+    messages: Array<{
+      id: string;
+      subject: string | null;
+      body: string | null;
+      ai_opener: string | null;
+      direction: string;
+      status: string;
+    }> | null;
+  };
+
+  return ((data ?? []) as unknown as Row[])
+    .filter((r) => r.creators)
+    .map((r) => {
+      const draft = (r.messages ?? []).find((m) => m.direction === 'outbound' && m.status === 'draft') ?? null;
+      return {
+        enrollmentId: r.id,
+        stage: r.stage,
+        creator: r.creators!,
+        campaign: r.campaigns,
+        draft: draft
+          ? { id: draft.id, subject: draft.subject, body: draft.body, ai_opener: draft.ai_opener }
+          : null,
+      };
+    });
+}
+
 export async function getCampaign(id: string) {
   const supabase = createAdminClient();
   const { data: campaign } = await supabase

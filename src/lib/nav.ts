@@ -13,7 +13,7 @@ export const NAV: NavGroup[] = [
       { href: '/discover', label: 'Discover', icon: '⌕' },
       { href: '/creators', label: 'Creators', icon: '☺' },
       { href: '/campaigns', label: 'Campaigns', icon: '◇' },
-      { href: '/outreach', label: 'Outreach', icon: '✉', soon: true },
+      { href: '/outreach', label: 'Outreach', icon: '✉' },
     ],
   },
   {
