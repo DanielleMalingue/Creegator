@@ -62,3 +62,128 @@ export async function listWaitlist() {
     .order('created_at', { ascending: false });
   return data ?? [];
 }
+
+// --- Dashboard / overview ---------------------------------------------------
+
+export type DashboardStats = {
+  totalCreators: number;
+  enrichedCreators: number;
+  withEmail: number;
+  byStatus: Record<string, number>;
+  stageCounts: Record<string, number>;
+  campaigns: number;
+  waitlist: number;
+};
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const supabase = createAdminClient();
+  const [creatorsRes, enrollRes, campaignsRes, waitlistRes] = await Promise.all([
+    supabase.from('creators').select('status, follower_count, email'),
+    supabase.from('campaign_creators').select('stage'),
+    supabase.from('campaigns').select('id', { count: 'exact', head: true }),
+    supabase.from('waitlist_signups').select('id', { count: 'exact', head: true }),
+  ]);
+
+  const creators = (creatorsRes.data ?? []) as {
+    status: string;
+    follower_count: number | null;
+    email: string | null;
+  }[];
+  const enrollments = (enrollRes.data ?? []) as { stage: string }[];
+
+  const byStatus: Record<string, number> = {};
+  for (const c of creators) byStatus[c.status] = (byStatus[c.status] ?? 0) + 1;
+
+  const stageCounts: Record<string, number> = {};
+  for (const e of enrollments) stageCounts[e.stage] = (stageCounts[e.stage] ?? 0) + 1;
+
+  return {
+    totalCreators: creators.length,
+    enrichedCreators: creators.filter((c) => c.follower_count != null).length,
+    withEmail: creators.filter((c) => c.email).length,
+    byStatus,
+    stageCounts,
+    campaigns: campaignsRes.count ?? 0,
+    waitlist: waitlistRes.count ?? 0,
+  };
+}
+
+// --- Campaigns --------------------------------------------------------------
+
+export type CampaignSummary = {
+  id: string;
+  name: string;
+  brand: string | null;
+  status: string;
+  creatorCount: number;
+  stageCounts: Record<string, number>;
+};
+
+export async function listCampaigns(): Promise<CampaignSummary[]> {
+  const supabase = createAdminClient();
+  const { data: campaigns } = await supabase
+    .from('campaigns')
+    .select('id, name, brand, status')
+    .order('created_at', { ascending: false });
+
+  const { data: enrollments } = await supabase
+    .from('campaign_creators')
+    .select('campaign_id, stage');
+
+  const byCampaign = new Map<string, { count: number; stages: Record<string, number> }>();
+  for (const e of (enrollments ?? []) as { campaign_id: string; stage: string }[]) {
+    const agg = byCampaign.get(e.campaign_id) ?? { count: 0, stages: {} };
+    agg.count++;
+    agg.stages[e.stage] = (agg.stages[e.stage] ?? 0) + 1;
+    byCampaign.set(e.campaign_id, agg);
+  }
+
+  return ((campaigns ?? []) as { id: string; name: string; brand: string | null; status: string }[]).map(
+    (c) => ({
+      ...c,
+      creatorCount: byCampaign.get(c.id)?.count ?? 0,
+      stageCounts: byCampaign.get(c.id)?.stages ?? {},
+    }),
+  );
+}
+
+export async function getCampaign(id: string) {
+  const supabase = createAdminClient();
+  const { data: campaign } = await supabase
+    .from('campaigns')
+    .select('*')
+    .eq('id', id)
+    .single();
+  if (!campaign) return null;
+
+  const { data: enrollments } = await supabase
+    .from('campaign_creators')
+    .select('id, stage, priority, notes, creators(id, display_name, handle, niche, fit_score, follower_count, email)')
+    .eq('campaign_id', id)
+    .order('priority', { ascending: false });
+
+  return {
+    campaign: campaign as unknown as {
+      id: string;
+      name: string;
+      brand: string | null;
+      status: string;
+      description: string | null;
+    },
+    enrollments: (enrollments ?? []) as unknown as Array<{
+      id: string;
+      stage: string;
+      priority: number;
+      notes: string | null;
+      creators: {
+        id: string;
+        display_name: string | null;
+        handle: string | null;
+        niche: string | null;
+        fit_score: number | null;
+        follower_count: number | null;
+        email: string | null;
+      } | null;
+    }>,
+  };
+}

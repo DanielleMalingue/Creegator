@@ -30,9 +30,9 @@ export default function Home() {
         <div className="flex flex-col gap-4 text-base font-semibold sm:flex-row">
           <a
             className="flex h-12 items-center justify-center rounded-full bg-brand px-6 text-brand-foreground transition-colors hover:bg-brand-dark"
-            href="/creators"
+            href="/dashboard"
           >
-            Open the CRM
+            Open the dashboard
           </a>
           <a
             className="flex h-12 items-center justify-center rounded-full border-2 border-lime px-6 text-foreground transition-colors hover:bg-lime/10"

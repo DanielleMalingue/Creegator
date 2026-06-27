@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { listCreators } from '@/lib/data';
 import { isAdminConfigured } from '@/lib/supabase/admin';
 import { compact, pct, creatorStatusStyle, emailStatusStyle, titleize } from '@/lib/format';
+import { EnrichBar } from './enrich-bar';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,9 +38,16 @@ export default async function CreatorsPage() {
   }
 
   const creators = await listCreators();
+  // TikTok creators with no follower count yet are the ones worth enriching.
+  const unenrichedIds = creators
+    .filter((c) => c.primary_platform === 'tiktok' && c.follower_count == null)
+    .map((c) => c.id);
 
   return (
     <Shell>
+      <div className="mb-4">
+        <EnrichBar unenrichedIds={unenrichedIds} />
+      </div>
       <div className="overflow-hidden rounded-xl border border-black/10">
         <table className="w-full text-left text-sm">
           <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
@@ -106,12 +114,20 @@ function Shell({ children }: { children: React.ReactNode }) {
           </h1>
           <p className="text-sm text-zinc-500">Discovery CRM — sorted by fit score.</p>
         </div>
-        <Link
-          href="/waitlist"
-          className="rounded-full border-2 border-lime px-4 py-2 text-sm font-semibold hover:bg-lime/10"
-        >
-          Waitlist
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/discover"
+            className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-brand-foreground hover:bg-brand-dark"
+          >
+            Discover
+          </Link>
+          <Link
+            href="/waitlist"
+            className="rounded-full border-2 border-lime px-4 py-2 text-sm font-semibold hover:bg-lime/10"
+          >
+            Waitlist
+          </Link>
+        </div>
       </div>
       {children}
     </div>
